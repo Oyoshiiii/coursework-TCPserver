@@ -97,5 +97,10 @@ class Player
         }
     }
 
-    protected internal void Close() { }
+    protected internal void Close()
+    {
+        Writer.Close();
+        Reader.Close();
+        TcpPlayer.Close();
+    }
 }
