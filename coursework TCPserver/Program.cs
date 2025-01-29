@@ -9,9 +9,12 @@ await server.ListenPlayerAsync();
 class Server
 {
     TcpListener listener = new TcpListener(IPAddress.Any, 8888);
-    public static List<int> GameCodes = new List<int>();
+    protected internal List<int> GameCodes = new List<int>();
     List<Player> players = new List<Player>();
-    
+    protected internal void RemovePlayerConnection()
+    {
+        players.Clear();
+    }
     protected internal async Task ListenPlayerAsync()
     {
         try
@@ -43,7 +46,6 @@ class Server
         {
             player.Close();
         }
-        players.Clear();
         listener.Stop();
     }
 }
@@ -56,9 +58,44 @@ class Player
     TcpClient TcpPlayer;
     Server server;
 
-    public Player(TcpClient tcpPlayer, Server server) { }
+    public Player(TcpClient tcpPlayer, Server server)
+    {
+        TcpPlayer = tcpPlayer;
+        this.server = server;
 
-    public async Task ProcessAsync() { }
+        var stream = TcpPlayer.GetStream();
+        Reader = new StreamReader(stream);
+        Writer = new StreamWriter(stream);
+    }
+
+    public async Task ProcessAsync()
+    {
+        try
+        {
+            string? connection = await Reader.ReadLineAsync();
+            Console.WriteLine($"Игрок {connection}");
+
+            while(true)
+            {
+                try
+                {
+                    string? code = await Reader.ReadLineAsync();
+                    Console.WriteLine($"Последний код автосохранения: {code}");
+                    server.GameCodes.Add(Convert.ToInt32(code));
+                }
+                catch
+                {
+                    Console.WriteLine("Игрок вышел из игры");
+                    break;
+                }
+            }
+        }
+        catch(Exception ex) { Console.WriteLine("\n\t\t" + ex.Message + "\n");}
+        finally
+        {
+            server.RemovePlayerConnection();
+        }
+    }
 
     protected internal void Close() { }
 }
