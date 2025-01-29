@@ -9,7 +9,7 @@ await server.ListenPlayerAsync();
 class Server
 {
     TcpListener listener = new TcpListener(IPAddress.Any, 8888);
-    protected internal List<int> GameCodes = new List<int>();
+    protected internal List<int> GameCodes = new List<int>() { 0 };
     List<Player> players = new List<Player>();
     protected internal void RemovePlayerConnection()
     {
@@ -39,7 +39,14 @@ class Server
             Disconnect();
         }
     }
-    protected internal async Task SendPlayerMessageAsync(string msg) { }
+    protected internal async Task SendPlayerMessageAsync()
+    {
+        foreach(var player in players)
+        {
+            await player.Writer.WriteLineAsync(GameCodes[GameCodes.Count - 1].ToString());
+            await player.Writer.FlushAsync();
+        }
+    }
     protected internal void Disconnect()
     {
         foreach (var player in players)
@@ -74,6 +81,7 @@ class Player
         {
             string? connection = await Reader.ReadLineAsync();
             Console.WriteLine($"Игрок {connection}");
+            await server.SendPlayerMessageAsync();
 
             while(true)
             {
