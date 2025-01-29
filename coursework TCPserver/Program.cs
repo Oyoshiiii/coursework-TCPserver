@@ -9,6 +9,7 @@ await server.ListenPlayerAsync();
 class Server
 {
     TcpListener listener = new TcpListener(IPAddress.Any, 8888);
+    public static List<int> GameCodes = new List<int>();
     List<Player> players = new List<Player>();
     
     protected internal async Task ListenPlayerAsync()
