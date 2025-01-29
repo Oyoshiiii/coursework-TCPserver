@@ -79,15 +79,22 @@ class Player
     {
         try
         {
-            string? connection = await Reader.ReadLineAsync();
-            Console.WriteLine($"Игрок {connection}");
-            await server.SendPlayerMessageAsync();
+            string? code = await Reader.ReadLineAsync();
+            if (Convert.ToInt32(code) == 0) 
+            { 
+                server.GameCodes.Clear(); 
+                server.GameCodes.Add(Convert.ToInt32(code)); 
+            }
+            else
+            {
+                await server.SendPlayerMessageAsync();
+            }
 
             while(true)
             {
                 try
                 {
-                    string? code = await Reader.ReadLineAsync();
+                    code = await Reader.ReadLineAsync();
                     Console.WriteLine($"Последний код автосохранения: {code}");
                     server.GameCodes.Add(Convert.ToInt32(code));
                 }
