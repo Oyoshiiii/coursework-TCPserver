@@ -85,12 +85,10 @@ class Player
                 server.GameCodes.Clear(); 
                 server.GameCodes.Add(Convert.ToInt32(code)); 
             }
-            else
-            {
-                await server.SendPlayerMessageAsync();
-            }
 
-            while(true)
+            await server.SendPlayerMessageAsync();
+
+            while (true)
             {
                 try
                 {
