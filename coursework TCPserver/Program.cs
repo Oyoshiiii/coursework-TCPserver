@@ -9,7 +9,7 @@ await server.ListenPlayerAsync();
 class Server
 {
     TcpListener listener = new TcpListener(IPAddress.Any, 8888);
-    protected internal List<int> GameCodes = new List<int>() { 0 };
+    protected internal List<int> GameCodes = new List<int>() { };
     List<Player> players = new List<Player>();
     protected internal void RemovePlayerConnection()
     {
