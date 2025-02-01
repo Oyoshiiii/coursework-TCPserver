@@ -1,119 +1,61 @@
-﻿using CourseworkGameLib;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
+using System.Text;
 
-Server server = new Server();
-await server.ListenPlayerAsync();
 
 class Server
 {
-    TcpListener listener = new TcpListener(IPAddress.Any, 8888);
-    protected internal List<int> GameCodes = new List<int>() { };
-    List<Player> players = new List<Player>();
-    protected internal void RemovePlayerConnection()
+    static List<int> GameCodes = new List<int>() { };
+
+    static void Main(string[] args)
     {
-        players.Clear();
-    }
-    protected internal async Task ListenPlayerAsync()
-    {
-        try
+        TcpListener server = new TcpListener(IPAddress.Any, 8888);
+        server.Start();
+        Console.WriteLine("Сервер запущен. Ожидается подключение игрока...");
+
+        while (true)
         {
-            listener.Start();
-            Console.WriteLine("Сервер запущен. Ожидается подключение игрока...");
+            TcpClient player = server.AcceptTcpClient();
+            Console.WriteLine("Игрок подключился");
+            NetworkStream stream = player.GetStream();
 
-            while(true)
-            {
-                if (players.Count == 0)
-                {
-                    TcpClient tcpPlayer = await listener.AcceptTcpClientAsync();
-                    Player player = new Player(tcpPlayer, this);
-                    Task.Run(player.ProcessAsync);
-                }
-                else continue;
-            }
-        }
-        catch(Exception ex) { Console.WriteLine("\n\t\t" + ex.Message + "\n"); }
-        finally
-        {
-            Disconnect();
-        }
-    }
-    protected internal async Task SendPlayerMessageAsync()
-    {
-        foreach(var player in players)
-        {
-            await player.Writer.WriteLineAsync(GameCodes[GameCodes.Count - 1].ToString());
-            await player.Writer.FlushAsync();
-        }
-    }
-    protected internal void Disconnect()
-    {
-        foreach (var player in players)
-        {
-            player.Close();
-        }
-        listener.Stop();
-    }
-}
+            byte[] data = new byte[256];
+            int bytesRead = stream.Read(data, 0, data.Length);
 
-class Player
-{
-    protected internal StreamWriter Writer { get; }
-    protected internal StreamReader Reader { get; }
+            int code = Convert.ToInt32(Encoding.UTF8.GetString(data, 0, bytesRead));
 
-    TcpClient TcpPlayer;
-    Server server;
-
-    public Player(TcpClient tcpPlayer, Server server)
-    {
-        TcpPlayer = tcpPlayer;
-        this.server = server;
-
-        var stream = TcpPlayer.GetStream();
-        Reader = new StreamReader(stream);
-        Writer = new StreamWriter(stream);
-    }
-
-    public async Task ProcessAsync()
-    {
-        try
-        {
-            string? code = await Reader.ReadLineAsync();
-            if (Convert.ToInt32(code) == 0) 
-            { 
-                server.GameCodes.Clear(); 
-                server.GameCodes.Add(Convert.ToInt32(code)); 
-            }
-
-            await server.SendPlayerMessageAsync();
-
-            while (true)
-            {
-                try
-                {
-                    code = await Reader.ReadLineAsync();
-                    Console.WriteLine($"Последний код автосохранения: {code}");
-                    server.GameCodes.Add(Convert.ToInt32(code));
-                }
-                catch
-                {
-                    Console.WriteLine("Игрок вышел из игры");
-                    break;
-                }
-            }
-        }
-        catch(Exception ex) { Console.WriteLine("\n\t\t" + ex.Message + "\n");}
-        finally
-        {
-            server.RemovePlayerConnection();
+            if (code == 0) { NewGame(); }
+            else if (code == -1) { ContGame(stream); }
+            else { SaveLastAutosaveCode(code, player); }
         }
     }
 
-    protected internal void Close()
+    static void NewGame()
     {
-        Writer.Close();
-        Reader.Close();
-        TcpPlayer.Close();
+        GameCodes.Clear();
+        GameCodes.Add(0);
+        Console.WriteLine("\t\tИгрок начал новую игру\n");
+    }
+
+    static void ContGame(NetworkStream stream)
+    {
+        if (GameCodes.Count > 0)
+        {
+            byte[] lastCode = Encoding.UTF8.GetBytes(GameCodes[GameCodes.Count - 1].ToString());
+            stream.Write(lastCode, 0, lastCode.Length);
+        }
+        else
+        {
+            byte[] noLastCode = Encoding.UTF8.GetBytes("0");
+            stream.Write(noLastCode, 0, noLastCode.Length);
+        }
+    }
+
+    static void SaveLastAutosaveCode(int code, TcpClient player)
+    {
+        GameCodes.Add(code);
+        Console.WriteLine($"Игрок вышел из игры с последним сохранением: {code}\n\n");
+        player.Close();
     }
 }
