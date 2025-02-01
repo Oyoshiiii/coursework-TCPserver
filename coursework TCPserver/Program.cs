@@ -29,6 +29,11 @@ class Server
             else if (code == -1) { ContGame(stream); }
             else { SaveLastAutosaveCode(code); }
 
+            if (GameCodes.Count == 0)
+            {
+                GameCodes.Add(0);
+            }
+
             Console.WriteLine($"Игрок вышел из игры с последним сохранением: {GameCodes[GameCodes.Count - 1]}\n\n");
             player.Close();
         }
@@ -37,7 +42,6 @@ class Server
     static void NewGame()
     {
         GameCodes.Clear();
-        GameCodes.Add(0);
         Console.WriteLine("\t\tИгрок начал новую игру\n");
     }
 
